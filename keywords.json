@@ -1,0 +1,31 @@
+{
+
+  "verticals": {
+    "Governance": [
+      "governance", "policy", "capacity building", "municipal", "M&E", "fiscal",
+      "monitoring and evaluation", "social audits", "fundraising", "management",
+      "consulting", "administration", "public", "government", "capacity",
+      "impact", "evaluation", "dashboard", "data"
+    ],
+    "Learning": [
+      "education", "skill", "training", "life skills", "TVET", "student",
+      "learning by doing", "contextualized learning", "teaching", "development",
+      "curriculum", "schools", "colleges", "educational institutes", "AI",
+      "skilling"
+    ],
+    "Safety": [
+      "gender", "safety", "equity", "mobility", "transport", "sexual", "health",
+      "responsive", "institutional safety", "SAFER", "security", "protection",
+      "wellbeing", "wellness", "happiness", "access", "accessibility", "child",
+      "children", "LGBTQ", "queer", "sexuality education", "personal","protection",
+      "empowerment", "design"
+    ],
+    "Climate": [
+      "climate", "resilience", "environment", "disaster", "sustainability", "green",
+      "climate adaptation", "democratize climate", "ecology", "conservation",
+      "renewable", "pollution", "energy", "climate mitigation", "green buildings",
+      "greening education", "CDRI", "disaster management", "disaster resilience",
+      "flood", "heat", "heat islands"
+    ]
+  }
+}
