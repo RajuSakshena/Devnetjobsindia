@@ -6,6 +6,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
+from datetime import datetime
 
 LISTING_URL = "https://www.devnetjobsindia.org/rfp_assignments.aspx"
 DETAIL_URL = "https://www.devnetjobsindia.org/JobDescription.aspx?Job_Id={jobid}"
@@ -35,10 +36,11 @@ HOW_TO_APPLY_KEYWORDS = [
     "Before you begin to write your proposal, consider that IEF prefers to fund:",
     "As you prepare your budget, these are some items that IEF will not fund:", "Organizational Profile",
     "Selection Process", "Proposal Submission Guidelines", "Terms and Conditions", "Security Deposit:",
-    "Facilities and Support Offered under the call for proposal:", "Prospective Consultants should demonstrate:"," Submission of bids","Protocol for Applying",
+    "Facilities and Support Offered under the call for proposal:", "Prospective Consultants should demonstrate:", " Submission of bids","Protocol for Applying",
     "Team Leader background:", "Education:", "Work Experience:","Languages:", "Instructions and Deadlines for Responding",
     "Passing Gifts Private Limited (PGPL)","HIRING OF AN AGENCY FOR DOCUMENTING GOOD PRACTICES IN PROGRAMMING FOR ADOLESCENT GIRLS IN INDIA UNDER THE UNFPA’S UNFPA-SUPPORTED ASTITVA NATIONAL PROJECT.",
-    "Application Process",]
+    "Application Process",
+]
 
 # --------------------------
 # Load verticals
@@ -97,7 +99,6 @@ def simulate_postback(session: requests.Session, hidden: dict, event_target: str
 # Extractors
 # --------------------------
 def fetch_detail_page(session: requests.Session, link: str) -> str:
-    """Extract description from Job ID → before View Similar Jobs"""
     if not link:
         return ""
     try:
@@ -117,7 +118,6 @@ def fetch_detail_page(session: requests.Session, link: str) -> str:
         return ""
 
 def extract_how_to_apply(description: str) -> str:
-    """Find sections in description that match custom keywords"""
     if not description:
         return ""
     lines = description.splitlines()
@@ -200,7 +200,6 @@ def extract_assignments(session: requests.Session, html: str, hidden: dict, vert
 # Excel helpers
 # --------------------------
 def save_excel_clickable(rows, filename="relevant_rfps.xlsx"):
-    # Changed column order here
     df = pd.DataFrame(rows, columns=["Title", "Description", "How_To_Apply", "Deadline", "Matched_Verticals", "Link"])
     df.to_excel(filename, index=False)
 
@@ -208,7 +207,7 @@ def save_excel_clickable(rows, filename="relevant_rfps.xlsx"):
         wb = load_workbook(filename)
         ws = wb.active
 
-        # Clickable links (now column F)
+        # Clickable links (column F)
         for r in range(2, ws.max_row + 1):
             cell = ws[f"F{r}"]
             url = cell.value
@@ -216,7 +215,7 @@ def save_excel_clickable(rows, filename="relevant_rfps.xlsx"):
                 cell.hyperlink = url
                 cell.style = "Hyperlink"
 
-        # Column widths (adjusted order)
+        # Column widths
         col_widths = {"A": 40, "B": 100, "C": 80, "D": 18, "E": 25, "F": 60}
         for col, width in col_widths.items():
             ws.column_dimensions[col].width = width
@@ -237,6 +236,26 @@ def save_excel_clickable(rows, filename="relevant_rfps.xlsx"):
         print(f"⚠️ Could not format Excel file: {e}")
 
 # --------------------------
+# Deadline Parser
+# --------------------------
+def parse_deadline(deadline_str: str):
+    """Convert deadline string into datetime"""
+    if not deadline_str:
+        return datetime.max
+    for fmt in ("%d-%b-%Y", "%d %b %Y"):
+        try:
+            return datetime.strptime(deadline_str.strip(), fmt)
+        except ValueError:
+            continue
+    return datetime.max
+
+def format_deadline(deadline_str: str):
+    dt = parse_deadline(deadline_str)
+    if dt == datetime.max:
+        return deadline_str
+    return dt.strftime("%d-%m-%Y")  # numeric month
+
+# --------------------------
 # Main
 # --------------------------
 def main():
@@ -254,8 +273,20 @@ def main():
         print("❌ No relevant assignments found with given keywords.")
         return
 
+    today = datetime.today()
+
+    # 🔹 Sort: upcoming deadlines first (earliest first), expired later
+    rows.sort(key=lambda r: (
+        parse_deadline(r["Deadline"]) < today,  # False (upcoming) first
+        parse_deadline(r["Deadline"])           # then by actual date
+    ))
+
+    # 🔹 Reformat all deadlines as DD-MM-YYYY
+    for r in rows:
+        r["Deadline"] = format_deadline(r["Deadline"])
+
     save_excel_clickable(rows, "devnetjobindiascraper.xlsx")
-    print(f"✅ Saved {len(rows)} relevant assignments to relevant_rfps.xlsx (columns reordered, clickable links, fixed formatting)")
+    print(f"✅ Saved {len(rows)} relevant assignments to devnetjobindiascraper.xlsx (sorted by upcoming deadlines first)")
 
 if __name__ == "__main__":
     main()
